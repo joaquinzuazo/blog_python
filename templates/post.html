@@ -4,9 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/home.css') }}">
-    <title>Contacto</title>
+    <title>Posteo</title>
 {% endblock %}
 
 {% block main %}
-    <p>Pagina de contacto</p>
+    <div>
+        <h3>Titulo: {{ post.titulo }}</h3>
+        <p>Autor: {{ post.autor }}</p>
+    </div>
+    <div>
+        <p>{{ post.texto }}</p>
+    </div>
+    <a href="/">Volver atras</a>
 {% endblock %}

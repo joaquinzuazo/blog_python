@@ -8,19 +8,22 @@
 {% endblock %}
 
 {% block main %}
-    <main>
-        <div>
-            <h2>Entradas del blog:</h2>
-        </div>
-        {% if posts %}
-            {% for post in posts %}
-                <div>
-                    <h4>Autor del post: {{ post.autor }}</h4>
-                    <p>{{ post.texto }}</p>
-                </div>
-            {% endfor %}
-        {% else %}
-            <p>Por el momento no hay post</p>
-        {% endif %}
-    </main>
+    <div>
+        <h2>Entradas del blog:</h2>
+    </div>
+    <form action="/">
+        <input type="search" id="search" name="search"><br>
+        <button type="submit">Buscar</button>
+    </form>
+    {% if posts %}
+        {% for post in posts %}
+            <div class="posts">
+                <h4>Titulo: {{ post.titulo }}</h4>
+                <p>Autor del post: {{ post.autor }}</p>
+                <a href="/post/{{post.id}}">Leer mas...</a>
+            </div>
+        {% endfor %}
+    {% else %}
+        <p>Por el momento no hay post</p>
+    {% endif %}
 {% endblock %}

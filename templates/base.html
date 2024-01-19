@@ -11,13 +11,16 @@
         </div>
         <div class="bar">
             <ul class="bar_items">
-                <li>Login</li>
+                <li><a href="/login">Login</a></li>
+                <li><a href="/post">Crear post</a></li>
                 <li><a href="/contacto">Contacto</a></li>
             </ul>
         </div>
     </header>
-    {% block main%}
-    {% endblock %}
+    <main>
+        {% block main%}
+        {% endblock %}
+    </main>
     <footer>
         Realizado por Joaquin
     </footer>
