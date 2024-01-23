@@ -18,9 +18,9 @@
     {% if posts %}
         {% for post in posts %}
             <div class="posts">
-                <h4>Titulo: {{ post.titulo }}</h4>
-                <p>Autor del post: {{ post.autor }}</p>
-                <a href="/post/{{post.id}}">Leer mas...</a>
+                <h4>Titulo: {{ post[2] }}</h4>
+                <p>Autor del post: {{ post[1] }}</p>
+                <a href="/post/{{post[0]}}">Leer mas...</a>
             </div>
         {% endfor %}
     {% else %}

@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block head %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/home.css') }}">
+    <title>Post</title>
+{% endblock %}
+
+{% block main %}
+    <h3>Crear post:</h3>
+    <form action="/post" method="post">
+        <label for="autor">Autor:</label><br>
+        <input type="text" id="autor" name="autor"><br>
+        <label for="titulo">Titulo:</label><br>
+        <input type="text" id="titulo" name="titulo"><br>
+        <label for="contenido">Contenido del post:</label><br>
+        <input type="text" id="contenido" name="contenido"><br>
+        <input type="submit" value="Enviar">
+    </form>
+    <p style="color: red;">{{ error }}</p>
+{% endblock %}

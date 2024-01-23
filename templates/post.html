@@ -9,11 +9,11 @@
 
 {% block main %}
     <div>
-        <h3>Titulo: {{ post.titulo }}</h3>
-        <p>Autor: {{ post.autor }}</p>
+        <h3>Titulo: {{ post[2] }}</h3>
+        <p>Autor: {{ post[1] }}</p>
     </div>
     <div>
-        <p>{{ post.texto }}</p>
+        <p>{{ post[3] }}</p>
     </div>
     <a href="/">Volver atras</a>
 {% endblock %}
