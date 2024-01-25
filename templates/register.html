@@ -11,9 +11,9 @@
     <h3>Registro de usuario:</h3>
     <form action="/register" method="post">
         <label for="username">Username:</label><br>
-        <input type="text" id="username" name="username"><br>
+        <input type="text" id="username" name="username", required="true"><br>
         <label for="password">Password:</label><br>
-        <input type="password" id="password" name="password"><br>
+        <input type="password" id="password" name="password", required="true"><br>
         <button type="submit" >Enviar</button>
     </form>
     <p style="color: red;">{{ error }}</p>

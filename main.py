@@ -5,8 +5,9 @@ app = Flask(__name__)
 
 def get_db_connection():
     conn = sqlite3.connect('blog.db')
-    cursor = conn.cursor()
-    return conn, cursor
+    # cursor = conn.cursor()
+    conn.row_factory = sqlite3.Row
+    return conn
 
 # Falsa db de posts
 posts = [
@@ -40,9 +41,16 @@ def home():
     #     return render_template("home.html", posts=posts)
     
     # funciona con db sqlite:
-    conn, cursor = get_db_connection()
-    cursor.execute("SELECT * FROM posts")
-    posts = cursor.fetchall()
+    conn = get_db_connection()
+
+    busqueda = request.args.get('search')
+    if busqueda:
+        posts = conn.execute("SELECT * FROM posts WHERE posts.titulo LIKE ?", (f"%{busqueda}%",)).fetchall() 
+        conn.close()
+        return render_template("home.html", posts=posts)
+        
+    posts = conn.execute("SELECT * FROM posts").fetchall()
+    conn.close()
     return render_template("home.html", posts=posts)
 
 
@@ -58,11 +66,23 @@ def login():
     if request.method == "GET":
         return render_template("login.html")
     elif request.method == "POST":
-        for user in users:
-            if user['username'] == request.form["username"] and user['password'] == request.form["password"]:
-                return redirect('/perfil')
-        else:
-            return render_template("login.html", error="Usuario o contraseña incorrecta")
+        # con base de datos falsa:
+        # for user in users:
+        #     if user['username'] == request.form["username"] and user['password'] == request.form["password"]:
+        #         return redirect('/perfil')
+
+        # con sqlite
+        username = request.form["username"]
+        password = request.form["password"]
+
+        conn = get_db_connection()
+        query = conn.execute("SELECT * FROM users WHERE users.username == ?", (username,))
+        user_exist = query.fetchone()
+        conn.close()
+        if user_exist and user_exist['password'] == password:
+            return redirect('/perfil')
+
+        return render_template("login.html", error="Usuario o contraseña incorrecta")
 
 
 # ruta para registro, get para obtener el form y post para procesar los datos de usuario y guardarlos
@@ -97,16 +117,16 @@ def register():
         if len(password) < 5:
             return render_template("register.html", error="La password debe contener mas de 5 caracteres")
 
-        conn, cursor = get_db_connection()
-        cursor.execute("SELECT * FROM users WHERE users.username == ?", (username,))
-        user_exist = cursor.fetchone()
+        conn = get_db_connection()
+        query = conn.execute("SELECT * FROM users WHERE users.username == ?", (username,))
+        user_exist = query.fetchone()
         if user_exist:
             return render_template("register.html", error="El username ya existe")
 
-        cursor.execute("INSERT INTO users (username, password) VALUES (?,?)", (username, password))
+        conn.execute("INSERT INTO users (username, password) VALUES (?,?)", (username, password))
         conn.commit()
         conn.close()
-        return redirect('/perfil')
+        return redirect('/login')
 
 
 # ruta perfil, proximamente solo para usuarios con login
@@ -124,12 +144,14 @@ def create_post():
         autor = request.form["autor"]
         titulo = request.form["titulo"]
         contenido = request.form["contenido"]
-        conn, cursor = get_db_connection()
-        cursor.execute("INSERT INTO posts (autor, titulo, contenido) VALUES (?,?,?)", (autor, titulo, contenido))
-        conn.commit()
-        conn.close()
-        return redirect('/')
-
+        if autor and titulo and contenido:
+            conn = get_db_connection()
+            conn.execute("INSERT INTO posts (autor, titulo, contenido) VALUES (?,?,?)", (autor, titulo, contenido))
+            conn.commit()
+            conn.close()
+            return redirect('/')
+        else:
+            return render_template("create_post.html", error="Todos los campos del post son obligatorios")
 
 # ruta para visualizar un post por id
 @app.route('/post/<id>')
@@ -138,10 +160,15 @@ def post_id(id):
     #     if post["id"] == id:
     #         return render_template("post.html", post=post)
     # return 'ok'
-    conn, cursor = get_db_connection()
-    cursor.execute("SELECT * FROM posts WHERE posts.id == ?", id)
-    post = cursor.fetchone()
-    return render_template("post.html", post=post)
+    conn = get_db_connection()
+    query = conn.execute("SELECT * FROM posts WHERE posts.id == ?", id)
+    post = query.fetchone()
+    conn.close()
+    if post:
+        return render_template("post.html", post=post)
+    return redirect('/')
+
+
 
 
 # ruta para probar parametros dinamicos por url y ademas hacer el cast directo en url
