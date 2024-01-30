@@ -1,29 +1,31 @@
 import sqlite3
 from flask import Flask, render_template, request, redirect, url_for
 
+from orm import Post, User
+
 app = Flask(__name__)
 
-def get_db_connection():
-    conn = sqlite3.connect('blog.db')
-    # cursor = conn.cursor()
-    conn.row_factory = sqlite3.Row
-    return conn
+# def get_db_connection():
+#     conn = sqlite3.connect('blog.db')
+#     # cursor = conn.cursor()
+#     conn.row_factory = sqlite3.Row
+#     return conn
 
 # Falsa db de posts
-posts = [
-    {"id": 1, "autor":"Joaquin", "titulo":"Python", "texto": "blabblablala"},
-    {"id": 2, "autor":"Ines", "titulo":"Java", "texto": "bsjadbajkdbdbd"},
-    {"id": 3, "autor":"Nico", "titulo":"JS", "texto": "bsjadbajkdbdbd"},
-    {"id": 4, "autor":"Andres", "titulo":"Go", "texto": "bsjadbajkdbdbd"},
-    {"id": 5, "autor":"Maria", "titulo":"TS", "texto": "bsjadbajkdbdbd"},
-    {"id": 6, "autor":"Juan", "titulo":"Java", "texto": "bsjadbajkdbdbd"}
-]
+# posts = [
+#     {"id": 1, "autor":"Joaquin", "titulo":"Python", "texto": "blabblablala"},
+#     {"id": 2, "autor":"Ines", "titulo":"Java", "texto": "bsjadbajkdbdbd"},
+#     {"id": 3, "autor":"Nico", "titulo":"JS", "texto": "bsjadbajkdbdbd"},
+#     {"id": 4, "autor":"Andres", "titulo":"Go", "texto": "bsjadbajkdbdbd"},
+#     {"id": 5, "autor":"Maria", "titulo":"TS", "texto": "bsjadbajkdbdbd"},
+#     {"id": 6, "autor":"Juan", "titulo":"Java", "texto": "bsjadbajkdbdbd"}
+# ]
 
 # falsa db de users
-users = [
-    {"id": 1, "username": "jzuazo", "password":"123456"},
-    {"id": 2, "username": "iness", "password":"123456"},
-]
+# users = [
+#     {"id": 1, "username": "jzuazo", "password":"123456"},
+#     {"id": 2, "username": "iness", "password":"123456"},
+# ]
 
 
 # ruta home para visualizar todos los posts y poder buscar por titulo 
@@ -41,16 +43,21 @@ def home():
     #     return render_template("home.html", posts=posts)
     
     # funciona con db sqlite:
-    conn = get_db_connection()
+    # conn = get_db_connection()
 
-    busqueda = request.args.get('search')
-    if busqueda:
-        posts = conn.execute("SELECT * FROM posts WHERE posts.titulo LIKE ?", (f"%{busqueda}%",)).fetchall() 
-        conn.close()
+    # con ORM propio:
+    orm_posts = Post("blog.db")
+
+    titulo_busqueda = request.args.get('search')
+    if titulo_busqueda:
+        # posts = conn.execute("SELECT * FROM posts WHERE posts.titulo LIKE ?", (f"%{busqueda}%",)).fetchall() 
+        # conn.close()
+        posts = orm_posts.get_posts_by_title(title=titulo_busqueda)
         return render_template("home.html", posts=posts)
         
-    posts = conn.execute("SELECT * FROM posts").fetchall()
-    conn.close()
+    # posts = conn.execute("SELECT * FROM posts").fetchall()
+    # conn.close()
+    posts = orm_posts.get_all_posts()
     return render_template("home.html", posts=posts)
 
 
@@ -75,11 +82,16 @@ def login():
         username = request.form["username"]
         password = request.form["password"]
 
-        conn = get_db_connection()
-        query = conn.execute("SELECT * FROM users WHERE users.username == ?", (username,))
-        user_exist = query.fetchone()
-        conn.close()
-        if user_exist and user_exist['password'] == password:
+        # con sql:
+        # conn = get_db_connection()
+        # query = conn.execute("SELECT * FROM users WHERE users.username == ?", (username,))
+        # user_exist = query.fetchone()
+        # conn.close()
+
+        # con orm:
+        orm_user = User("blog.db")
+        user_exist = orm_user.get_user_by_username(username=username)
+        if user_exist and user_exist[0]['password'] == password:
             return redirect('/perfil')
 
         return render_template("login.html", error="Usuario o contraseña incorrecta")
@@ -116,16 +128,28 @@ def register():
         
         if len(password) < 5:
             return render_template("register.html", error="La password debe contener mas de 5 caracteres")
+        
+        # con sql
+        # conn = get_db_connection()
+        # query = conn.execute("SELECT * FROM users WHERE users.username == ?", (username,))
+        # user_exist = query.fetchone()
 
-        conn = get_db_connection()
-        query = conn.execute("SELECT * FROM users WHERE users.username == ?", (username,))
-        user_exist = query.fetchone()
+        # con orm
+        orm_user = User("blog.db")
+        user_exist = orm_user.get_user_by_username(username=username)
         if user_exist:
             return render_template("register.html", error="El username ya existe")
 
-        conn.execute("INSERT INTO users (username, password) VALUES (?,?)", (username, password))
-        conn.commit()
-        conn.close()
+        # con sql:
+        # conn.execute("INSERT INTO users (username, password) VALUES (?,?)", (username, password))
+        # conn.commit()
+        # conn.close()
+
+        # con orm primera forma:
+        orm_user.create_user(username=username, password=password)
+
+        # con orm segunda forma:
+        # orm_user.insert("INSERT INTO users (username, password) VALUES (?,?)",  (username, password))
         return redirect('/login')
 
 
@@ -138,20 +162,30 @@ def perfil():
 # ruta para crear post, get para visualizar form y post para procesarlo
 @app.route('/post', methods=["GET", "POST"])
 def create_post():
-    if request.method == "GET":
-        return render_template("create_post.html")
-    elif request.method == "POST":
-        autor = request.form["autor"]
-        titulo = request.form["titulo"]
-        contenido = request.form["contenido"]
-        if autor and titulo and contenido:
-            conn = get_db_connection()
-            conn.execute("INSERT INTO posts (autor, titulo, contenido) VALUES (?,?,?)", (autor, titulo, contenido))
-            conn.commit()
-            conn.close()
-            return redirect('/')
-        else:
-            return render_template("create_post.html", error="Todos los campos del post son obligatorios")
+    # con try except capturo los errores que puedan ocurrir tanto en la ruta, como los lanzados desde las clases y metodos utilizados dentro.
+    try:
+        if request.method == "GET":
+            return render_template("create_post.html")
+        elif request.method == "POST":
+            autor = request.form["autor"]
+            titulo = request.form["titulo"]
+            contenido = request.form["contenido"]
+            if autor and titulo and contenido:
+                # con slq
+                # conn = get_db_connection()
+                # conn.execute("INSERT INTO posts (autor, titulo, contenido) VALUES (?,?,?)", (autor, titulo, contenido))
+                # conn.commit()
+                # conn.close()
+
+                # con orm
+                orm_posts = Post("blog.db")
+                orm_posts.create_post(autor=autor, titulo=titulo, contenido=contenido)
+                return redirect('/')
+            else:
+                return render_template("create_post.html", error="Todos los campos del post son obligatorios")
+    except Exception as e:
+        return render_template("create_post.html", error="En este momento, no podemos procesar la solicitud, intente nuevamente")
+
 
 # ruta para visualizar un post por id
 @app.route('/post/<id>')
@@ -160,12 +194,19 @@ def post_id(id):
     #     if post["id"] == id:
     #         return render_template("post.html", post=post)
     # return 'ok'
-    conn = get_db_connection()
-    query = conn.execute("SELECT * FROM posts WHERE posts.id == ?", id)
-    post = query.fetchone()
-    conn.close()
+    
+    # con sql:
+    # conn = get_db_connection()
+    # query = conn.execute("SELECT * FROM posts WHERE posts.id == ?", id)
+    # post = query.fetchone()
+    # conn.close()
+
+    # con orm propio:
+    orm_posts = Post("blog.db")
+    post = orm_posts.get_posts_by_id(id=id)
+
     if post:
-        return render_template("post.html", post=post)
+        return render_template("post.html", post=post[0])
     return redirect('/')
 
 
