@@ -1,8 +1,16 @@
-from flask import Flask, render_template, request, redirect
+from flask import Flask, render_template, request, redirect, session, g
 
 from orm import Post, User
 
 app = Flask(__name__)
+app.secret_key = "senpai_key"
+
+@app.before_request
+def before_request():
+    g.user = None
+    if 'username' in session:
+        # si aca iriamos a buscar todos los datos del user, esta func tiene sentido
+        g.user = session["username"]
 
 # ruta home para visualizar todos los posts y poder buscar por titulo 
 @app.route('/')
@@ -36,6 +44,7 @@ def login():
         orm_user = User("blog.db")
         user_exist = orm_user.get_user_by_username(username=username)
         if user_exist and user_exist[0]['password'] == password:
+            session['username'] = username
             return redirect('/perfil')
 
         return render_template("login.html", error="Usuario o contraseña incorrecta")
@@ -66,9 +75,24 @@ def register():
 
 
 # ruta perfil, proximamente solo para usuarios con login
+@app.route('/logout')
+def logout():
+    if not g.user:
+        return render_template("login.html", error="Debe iniciar sesion")
+    session.pop("username", None)
+    return redirect('/')
+
+# ruta perfil, proximamente solo para usuarios con login
 @app.route('/perfil')
 def perfil():
-    return render_template("perfil.html")
+    # usando objeto session
+    # username = session.get("username")
+    # if not username:
+
+    # usando objeto g, que es de contexto de request
+    if not g.user:
+        return render_template("login.html", error="Debe iniciar sesion")
+    return render_template("perfil.html", username=g.user)
 
 
 # ruta para crear post, get para visualizar form y post para procesarlo
@@ -77,9 +101,16 @@ def create_post():
     # con try except capturo los errores que puedan ocurrir tanto en la ruta, como los lanzados desde las clases y metodos utilizados dentro.
     try:
         if request.method == "GET":
+            username = session.get("username")
+            if not username:
+                return render_template("login.html", error="Debe iniciar sesion")
             return render_template("create_post.html")
         elif request.method == "POST":
-            autor = request.form["autor"]
+            username = session.get("username")
+            if not username:
+                return render_template("login.html", error="Debe iniciar sesion")
+            
+            autor = username
             titulo = request.form["titulo"]
             contenido = request.form["contenido"]
             if autor and titulo and contenido:
