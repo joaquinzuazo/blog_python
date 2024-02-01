@@ -42,6 +42,10 @@ class Database:
 
 class User(Database):
     def get_user_by_username(self, username: str):
+        """
+            Busca un usuario en la base de datos por username
+            Args: Username -> str
+        """
         try:
             query = "SELECT * FROM users WHERE users.username == ?"
             params = (username,)
