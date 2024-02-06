@@ -1,9 +1,29 @@
-from flask import Flask, render_template, request, redirect, session, g
+from flask import Flask, render_template, request, redirect, session, g, abort, Request
 
 from orm import Post, User
+import time
 
 app = Flask(__name__)
 app.secret_key = "senpai_key"
+
+
+# Middleware
+class TimeMiddleware:
+    def __init__(self, app):
+        self.app = app
+
+    def __call__(self, environ, start_response):
+        # Inicio un tiempo antes de ejecutar la respuesta
+        start_time = time.time()
+        print(f"start_time {start_time}")
+        response = self.app(environ, start_response) # voy a la vista a ver la respuesta que tengo que dar
+        # Despues de la respuesta, pero antes del envio, calculo el tiempo
+        end_time = time.time()
+        print(f"end_time {end_time}")
+        print(f"Tiempo de respuesta: {end_time - start_time} segundos")
+        return response
+
+
 
 @app.before_request
 def before_request():
@@ -11,6 +31,11 @@ def before_request():
     if 'username' in session:
         # si aca iriamos a buscar todos los datos del user, esta func tiene sentido
         g.user = session["username"]
+
+@app.after_request
+def after_request(response):
+    return response
+
 
 # ruta home para visualizar todos los posts y poder buscar por titulo 
 @app.route('/')
@@ -91,7 +116,7 @@ def perfil():
 
     # usando objeto g, que es de contexto de request
     if not g.user:
-        return render_template("login.html", error="Debe iniciar sesion")
+        return redirect('/login')
     return render_template("perfil.html", username=g.user)
 
 
@@ -101,16 +126,16 @@ def create_post():
     # con try except capturo los errores que puedan ocurrir tanto en la ruta, como los lanzados desde las clases y metodos utilizados dentro.
     try:
         if request.method == "GET":
-            username = session.get("username")
-            if not username:
+            # username = session.get("username")
+            if not g.user:
                 return render_template("login.html", error="Debe iniciar sesion")
             return render_template("create_post.html")
         elif request.method == "POST":
-            username = session.get("username")
-            if not username:
+            # username = session.get("username")
+            if not g.user:
                 return render_template("login.html", error="Debe iniciar sesion")
             
-            autor = username
+            autor = g.user
             titulo = request.form["titulo"]
             contenido = request.form["contenido"]
             if autor and titulo and contenido:
@@ -134,4 +159,5 @@ def post_id(id):
         return render_template("post.html", post=post[0])
     return redirect('/')
 
+app.wsgi_app = TimeMiddleware(app.wsgi_app)
 app.run(debug=True)
