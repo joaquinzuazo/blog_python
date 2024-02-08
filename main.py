@@ -1,28 +1,16 @@
-from flask import Flask, render_template, request, redirect, session, g, abort, Request
+import time
+import requests
+from flask import Flask, render_template, request, redirect, session, g, abort, Request, Blueprint
 
 from orm import Post, User
-import time
+from valid_register import valid_form
+from routes_posts import routes
+
 
 app = Flask(__name__)
 app.secret_key = "senpai_key"
 
-
-# Middleware
-class TimeMiddleware:
-    def __init__(self, app):
-        self.app = app
-
-    def __call__(self, environ, start_response):
-        # Inicio un tiempo antes de ejecutar la respuesta
-        start_time = time.time()
-        print(f"start_time {start_time}")
-        response = self.app(environ, start_response) # voy a la vista a ver la respuesta que tengo que dar
-        # Despues de la respuesta, pero antes del envio, calculo el tiempo
-        end_time = time.time()
-        print(f"end_time {end_time}")
-        print(f"Tiempo de respuesta: {end_time - start_time} segundos")
-        return response
-
+app.register_blueprint(routes)
 
 
 @app.before_request
@@ -83,17 +71,15 @@ def register():
     elif request.method == "POST":
         username = request.form["username"]
         password = request.form["password"]
-        
-        if not username or not password:
-            return render_template("register.html", error="El username y el password son obligatorios")
-        
-        if len(password) < 5:
-            return render_template("register.html", error="La password debe contener mas de 5 caracteres")
+
 
         orm_user = User("blog.db")
-        user_exist = orm_user.get_user_by_username(username=username)
-        if user_exist:
-            return render_template("register.html", error="El username ya existe")
+
+        # separando funciones para validar y poder testear individualmente partes del codigo.
+        resultado, mensaje = valid_form(orm_user=orm_user, username=username, password=password)
+        if not resultado:
+            return render_template("register.html", error=mensaje)
+
         orm_user.create_user(username=username, password=password)
 
         return redirect('/login')
@@ -120,44 +106,4 @@ def perfil():
     return render_template("perfil.html", username=g.user)
 
 
-# ruta para crear post, get para visualizar form y post para procesarlo
-@app.route('/post', methods=["GET", "POST"])
-def create_post():
-    # con try except capturo los errores que puedan ocurrir tanto en la ruta, como los lanzados desde las clases y metodos utilizados dentro.
-    try:
-        if request.method == "GET":
-            # username = session.get("username")
-            if not g.user:
-                return render_template("login.html", error="Debe iniciar sesion")
-            return render_template("create_post.html")
-        elif request.method == "POST":
-            # username = session.get("username")
-            if not g.user:
-                return render_template("login.html", error="Debe iniciar sesion")
-            
-            autor = g.user
-            titulo = request.form["titulo"]
-            contenido = request.form["contenido"]
-            if autor and titulo and contenido:
-
-                orm_posts = Post("blog.db")
-                orm_posts.create_post(autor=autor, titulo=titulo, contenido=contenido)
-                return redirect('/')
-            else:
-                return render_template("create_post.html", error="Todos los campos del post son obligatorios")
-    except Exception as e:
-        return render_template("create_post.html", error="En este momento, no podemos procesar la solicitud, intente nuevamente")
-
-
-# ruta para visualizar un post por id
-@app.route('/post/<id>')
-def post_id(id):
-    orm_posts = Post("blog.db")
-    post = orm_posts.get_posts_by_id(id=id)
-
-    if post:
-        return render_template("post.html", post=post[0])
-    return redirect('/')
-
-app.wsgi_app = TimeMiddleware(app.wsgi_app)
 app.run(debug=True)

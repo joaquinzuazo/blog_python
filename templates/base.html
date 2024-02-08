@@ -13,7 +13,7 @@
             <ul class="bar_items">
                 <li><a href={{ url_for('home') }}>Home</a></li>
                 <li><a href={{ url_for('login') }}>Login</a></li>
-                <li><a href={{ url_for('create_post') }}>Crear post</a></li>
+                <li><a href={{ url_for('posts.create_post') }}>Crear post</a></li>
                 <li><a href={{ url_for('contacto') }}>Contacto</a></li>
                 {% if session.get("username") %}
                 <li><a href={{ url_for('logout') }}>Cerrar sesion</a></li>

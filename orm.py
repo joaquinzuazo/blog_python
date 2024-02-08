@@ -13,7 +13,7 @@ class Database:
     def query_all(self, query: str):
         try:
             conn = self._get_db_connection()
-            query_result = conn.execute(query).fetchall()
+            query_result = conn.execute(query).fetchall() #query = "SELECT * from tabla"
             conn.close()
             return query_result
         except Exception as e:
@@ -23,7 +23,7 @@ class Database:
     def query_where(self, query: str, params: tuple):
         try:
             conn = self._get_db_connection()
-            query_result = conn.execute(query, params).fetchall()
+            query_result = conn.execute(query, params).fetchall() # query = "SELECT * FROM tabla WHERE tabla.campo == ?" params = (params1,)
             conn.close()
             return query_result
         except Exception as e:
@@ -33,7 +33,7 @@ class Database:
     def insert(self, query: str, params: tuple):
         try:
             conn = self._get_db_connection()
-            conn.execute(query, params)
+            conn.execute(query, params) # query = 'INSERT INTO tabla ...'
             conn.commit()
             conn.close()
         except Exception as e:
